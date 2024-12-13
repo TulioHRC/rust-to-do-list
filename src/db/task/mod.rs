@@ -1,7 +1,7 @@
 use rusqlite::{Connection, Result};
 
 pub struct Task {
-  pub id: u64,
+  pub id: u32,
   pub name: String,
   pub is_done: bool,
   pub created_at: String,
@@ -34,13 +34,12 @@ pub fn build_tasks_db_table (conn: &Connection) -> Result<()> {
 
   Ok(())
 }
-
 pub fn insert_task(conn: &Connection, task_name: String) -> Result<Task> {
-  let sql = "INSERT INTO tasks (name) VALUES (?) RETURNING id, name, is_done, created_at";
+  let sql = "INSERT INTO tasks (name, is_done) VALUES (?, ?) RETURNING id, name, is_done, created_at";
   let mut statement = conn.prepare(sql)?;
 
   let inserted_task = statement.query_row(
-      [&task_name],
+      [&task_name as &dyn rusqlite::ToSql, &false],
       |row| {
           Ok(Task {
               id: row.get(0)?,
@@ -78,165 +77,110 @@ pub fn read_tasks(conn: &Connection) -> Result<Vec<Task>> {
   Ok(tasks)
 }
 
-pub fn delete_task(conn: &Connection, id: String) -> Result<()> {
+pub fn delete_task(conn: &Connection, id: u32) -> Result<Task> {
   let sql = "UPDATE tasks SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?";
-  conn.execute(sql, &[&id]).unwrap();
-  Ok(())
+  match conn.execute(sql, &[&id]) {
+    Ok(_) => {
+      let sql = "SELECT id, name, is_done, created_at FROM tasks WHERE id = ? AND deleted_at IS NOT NULL";
+      let mut statement = conn.prepare(sql)?;
+
+      let deleted_task = statement.query_row(
+          &[&id],
+          |row| {
+              Ok(Task {
+                  id: row.get(0)?,
+                  name: row.get(1)?,
+                  is_done: row.get(2)?,
+                  created_at: row.get(3)?,
+              })
+          },
+      )?;
+
+      return Ok(deleted_task)
+    }
+    Err(err) => {
+      eprintln!("Error deleting task: {}", err);
+      return Err(err)
+    }
+  };
 }
 
-// #[cfg(test)]
-// mod tests {
-//   use super::*;
-//   use super::super::connect_db;
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use super::super::connect_db;
 
 
-//   fn setup() -> Result<Connection>{
-//     // Set up test environment
-//     return connect_db(Some(true));
-//   }
+  fn setup() -> Result<Connection>{
+    // Set up test environment
+    return connect_db(Some(true));
+  }
 
-//   #[test]
-//   fn test_insert_expense() {
-//     let conn = setup();
+  #[test]
+  fn test_insert_task() {
+    let conn = setup();
 
-//     match conn {
-//       Ok(conn) => {
-//         let expense = Expense {
-//           id: 0,
-//           name: "Test expense".to_string(),
-//           value: 10.50,
-//           expense_type: Some("Groceries".to_string()),
-//           date: "2022-01-01".to_string(),
-//         };
+    match conn {
+      Ok(conn) => {
+        let task = Task {
+          id: 1,
+          name: "Test task".to_string(),
+          is_done: false,
+          created_at: "".to_string(),
+        };
 
-//         match insert_expense(&conn, expense.name, expense.value, expense.expense_type, expense.date) {
-//           Ok(_) => {
-//             println!("Test passed: Inserted expense successfully");
-//           }
-//           Err(err) => {
-//             eprintln!("Failed to insert expense: {}", err);
-//             assert!(false);
-//           }
-//         }
-//       }
-//       Err(err) => {
-//         eprintln!("Error connecting to the database: {}", err);
-//         assert!(false);
-//       }
-//     }
-//   }
+        match insert_task(&conn, "Test task".to_string()) {
+          Ok(task_inserted) => {
+            println!("Test passed: Inserted task successfully");
+            assert!(task_inserted.id == task.id);
+            assert!(task_inserted.name == task.name);
+            assert!(task_inserted.is_done == task.is_done);
+          }
+          Err(err) => {
+            eprintln!("Failed to insert task: {}", err);
+            assert!(false);
+          }
+        }
+      }
+      Err(err) => {
+        eprintln!("Error connecting to the database: {}", err);
+        assert!(false);
+      }
+    }
+  }
 
-//   #[test]
-//   fn test_read_expenses(){
-//     let conn = setup();
+  #[test]
+  fn test_insert_task_and_read_task() {
+    let conn = setup().unwrap();
 
-//     match conn {
-//       Ok(conn) => {
-//         match insert_expense(&conn, 
-//           "Test expense 2".to_string(),
-//           15.50,
-//           Some("Transportation".to_string()),
-//           "2022-01-02".to_string(),
-//         ) {
-//           Ok(_) => {
-//             let expenses = read_expenses(&conn, Some(1), Some(2022)).unwrap();
-//             if
-//               expenses[0].id == 1 && 
-//               expenses[0].name == "Test expense 2".to_string() &&
-//               expenses[0].value == 15.50 &&
-//               expenses[0].expense_type == Some("Transportation".to_string()) &&
-//               expenses[0].date == "2022-01-02".to_string()
-//             {
-//               println!("Expense inserted was found!");
-//             } else {
-//               eprintln!("Expense inserted was not found!");
-//               assert!(false);
-//             }
-//             assert_eq!(expenses.len(), 1);
-//           }
-//           Err(err) => {
-//             eprintln!("Failed to insert expense: {}", err);
-//             assert!(false);
-//           }
-//         }
-//       }
-//       Err(err) => {
-//         eprintln!("Error connecting to the database: {}", err);
-//         assert!(false);
-//       }
-//     }
-//   }
+    let task = insert_task(&conn, "Test task".to_string()).unwrap();
 
-//   #[test]
-//   fn test_delete_expense(){
-//     let conn = setup();
+    let tasks = read_tasks(&conn).unwrap();
+    assert_eq!(tasks.len(), 1);
+    assert_eq!(tasks[0].id, task.id);
+    assert_eq!(tasks[0].name, task.name);
+    assert_eq!(tasks[0].is_done, task.is_done);
+    assert_eq!(tasks[0].created_at, task.created_at);
+  }
 
-//     match conn {
-//       Ok(conn) => {
-//         match insert_expense(&conn, 
-//           "Test expense 3".to_string(),
-//           20.00,
-//           Some("Entertainment".to_string()),
-//           "2022-01-03".to_string(),
-//         ) {
-//           Ok(_) => {
-//             delete_expense(&conn, format!("{}", 1)).unwrap();
-//             let expenses = read_expenses(&conn, Some(1), Some(2022)).unwrap();
-//             assert_eq!(expenses.len(), 0);
-//             println!("Test passed: Expense deleted successfully");
-//           }
-//           Err(err) => {
-//             eprintln!("Failed to insert expense: {}", err);
-//             assert!(false);
-//           }
-//         }
-//       }
-//       Err(err) => {
-//         eprintln!("Error connecting to the database: {}", err);
-//         assert!(false);
-//       }
-//     }
-//   }
+  #[test]
+  fn test_multiple_insert_task_and_read_tasks() {
+    let conn = setup().unwrap();
 
-//   #[test]
-//   fn test_edit_expense() {
-//     let conn = setup();
+    let task1 = insert_task(&conn, "Test task".to_string()).unwrap();
+    let task2 = insert_task(&conn, "Test 2 task".to_string()).unwrap();
 
-//     match conn {
-//       Ok(conn) => {
-//         match insert_expense(&conn, 
-//           "Test expense 4".to_string(),
-//           25.00,
-//           Some("Shopping".to_string()),
-//           "2022-01-04".to_string(),
-//         ) {
-//           Ok(_) => {
-//             edit_expense(&conn, &format!("{}", 1), Some(String::from("New expense name")), None, None, None).unwrap();
-//             let expenses = read_expenses(&conn, Some(1), Some(2022)).unwrap();
-//             if
-//               expenses[0].id == 1 && 
-//               expenses[0].name == "New expense name".to_string() &&
-//               expenses[0].value == 25.00 &&
-//               expenses[0].expense_type == Some("Shopping".to_string()) &&
-//               expenses[0].date == "2022-01-04".to_string()
-//             {
-//               println!("Test passed: Expense edited successfully");
-//               assert!(true);
-//             } else {
-//               eprintln!("Expense not found after editing!");
-//               assert!(false);
-//             }
-//           },
-//           Err(err) => {
-//             eprintln!("Failed to insert expense: {}", err);
-//             assert!(false);
-//           }
-//         }
-//       }, 
-//       Err(err) => {
-//         eprintln!("Error connecting to the database: {}", err);
-//         assert!(false);
-//       }
-//     }
-//   }
-// }
+
+    let tasks = read_tasks(&conn).unwrap();
+    assert_eq!(tasks.len(), 2);
+    assert_eq!(tasks[0].id, task1.id);
+    assert_eq!(tasks[0].name, task1.name);
+    assert_eq!(tasks[0].is_done, task1.is_done);
+    assert_eq!(tasks[0].created_at, task1.created_at);
+
+    assert_eq!(tasks[1].id, task2.id);
+    assert_eq!(tasks[1].name, task2.name);
+    assert_eq!(tasks[1].is_done, task2.is_done);
+    assert_eq!(tasks[1].created_at, task2.created_at);
+  }
+}

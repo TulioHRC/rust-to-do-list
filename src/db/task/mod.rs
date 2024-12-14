@@ -53,6 +53,34 @@ pub fn insert_task(conn: &Connection, task_name: String) -> Result<Task> {
   Ok(inserted_task)
 }
 
+pub fn update_task_status(conn: &Connection, id: u32, is_done: bool) -> Result<Task> {
+  let sql = "UPDATE tasks SET is_done = ? WHERE id = ?";
+  match conn.execute(sql, &[&is_done, &id as &dyn rusqlite::ToSql]) {
+    Ok(_) => {
+      let sql = "SELECT id, name, is_done, created_at FROM tasks WHERE id =?";
+      let mut statement = conn.prepare(sql)?;
+
+      let updated_task = statement.query_row(
+          &[&id],
+          |row| {
+              Ok(Task {
+                  id: row.get(0)?,
+                  name: row.get(1)?,
+                  is_done: row.get(2)?,
+                  created_at: row.get(3)?,
+              })
+          },
+      )?;
+
+      Ok(updated_task)
+    }
+    Err(err) => {
+      eprintln!("Error updating task status: {}", err);
+      Err(err)
+    }
+  }
+}
+
 pub fn read_tasks(conn: &Connection) -> Result<Vec<Task>> {
   let sql = format!("SELECT id, name, is_done, created_at FROM tasks WHERE deleted_at is NULL");
   

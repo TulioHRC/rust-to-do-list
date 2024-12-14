@@ -95,3 +95,212 @@ pub fn command_switch(args: Args, conn: &Connection) {
       }
     }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use super::super::connect_db;
+  use rusqlite::Result;
+
+  fn setup() -> Result<Connection>{
+    // Set up test environment
+    return connect_db(Some(true));
+  }
+
+  #[test]
+  fn test_add_task() {
+    let conn = setup().unwrap();
+      
+    let args = Args {
+      cmd: Commands::Add {
+        name: String::from("Test Task")
+      },
+    };
+    
+    command_switch(args, &conn);
+    
+    let tasks = read_tasks(&conn).unwrap();
+
+    assert!(
+      tasks.len() == 1 && tasks[0].name == String::from("Test Task"),
+      "The task was not added to the database"
+    );
+  }
+
+  #[test]
+  fn test_update_task_status_true() {
+    let conn = setup().unwrap();
+      
+    let args = Args {
+      cmd: Commands::Add {
+        name: String::from("Test Task")
+      },
+    };
+    
+    command_switch(args, &conn);
+    
+    let tasks = read_tasks(&conn).unwrap();
+    let task = &tasks[0];
+
+    let args = Args {
+      cmd: Commands::Update {
+        id: task.id,
+        done: String::from("true"),
+      },
+    };
+    
+    command_switch(args, &conn);
+    
+    let updated_task = read_tasks(&conn).unwrap().into_iter().find(|t| t.id == task.id).unwrap();
+
+    assert!(
+      updated_task.is_done == true,
+      "The task status was not updated"
+    );
+  }
+
+  #[test]
+  fn test_update_task_status_false() {
+    let conn = setup().unwrap();
+      
+    let args = Args {
+      cmd: Commands::Add {
+        name: String::from("Test Task")
+      },
+    };
+    
+    command_switch(args, &conn);
+    
+    let tasks = read_tasks(&conn).unwrap();
+    let task = &tasks[0];
+
+    let args = Args {
+      cmd: Commands::Update {
+        id: task.id,
+        done: String::from("true"),
+      },
+    };
+
+    command_switch(args, &conn);
+
+    let updated_task = read_tasks(&conn).unwrap().into_iter().find(|t| t.id == task.id).unwrap();
+
+    assert!(
+      updated_task.is_done == true,
+      "The task status was not updated to true"
+    );
+    
+    let args = Args {
+      cmd: Commands::Update {
+        id: task.id,
+        done: String::from("false"),
+      },
+    };
+    
+    command_switch(args, &conn);
+    
+    let updated_task = read_tasks(&conn).unwrap().into_iter().find(|t| t.id == task.id).unwrap();
+
+    assert!(
+      updated_task.is_done == false,
+      "The task status was not updated to false"
+    );
+  }
+
+  #[test]
+  fn test_update_task_done_error() {
+    let conn = setup().unwrap();
+      
+    let args = Args {
+      cmd: Commands::Add {
+        name: String::from("Test Task")
+      },
+    };
+    
+    command_switch(args, &conn);
+    
+    let tasks = read_tasks(&conn).unwrap();
+    let task = &tasks[0];
+
+    let args = Args {
+      cmd: Commands::Update {
+        id: task.id,
+        done: String::from("invalid"),
+      },
+    };
+    
+    command_switch(args, &conn);
+    
+    let tasks = read_tasks(&conn).unwrap();
+
+    assert!(
+      tasks.len() == 1 && tasks[0].is_done == false,
+      "The task status was not updated to false with invalid input"
+    );
+  }
+
+  #[test]
+  fn test_delete_task() {
+    let conn = setup().unwrap();
+      
+    let args = Args {
+      cmd: Commands::Add {
+        name: String::from("Test Task")
+      },
+    };
+    
+    command_switch(args, &conn);
+    
+    let tasks = read_tasks(&conn).unwrap();
+    let task = &tasks[0];
+
+    let args = Args {
+      cmd: Commands::Delete {
+        id: task.id,
+      },
+    };
+    
+    command_switch(args, &conn);
+    
+    let tasks = read_tasks(&conn).unwrap();
+
+    assert!(
+      tasks.len() == 0,
+      "The task was not deleted from the database"
+    );
+  }
+
+  #[test]
+  fn test_get_tasks() {
+    let conn = setup().unwrap();
+      
+    let args = Args {
+      cmd: Commands::Add {
+        name: String::from("Test Task 1"),
+      },
+    };
+    
+    command_switch(args, &conn);
+    
+    let args = Args {
+      cmd: Commands::Add {
+        name: String::from("Test Task 2"),
+      },
+    };
+    
+    command_switch(args, &conn);
+    
+    let args = Args {
+      cmd: Commands::Get {},
+    };
+    
+    command_switch(args, &conn);
+    
+    let tasks = read_tasks(&conn).unwrap();
+
+    assert!(
+      tasks.len() == 2,
+      "The tasks were not listed"
+    );
+  }
+}

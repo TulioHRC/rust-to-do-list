@@ -138,7 +138,6 @@ mod tests {
   use super::*;
   use super::super::connect_db;
 
-
   fn setup() -> Result<Connection>{
     // Set up test environment
     return connect_db(Some(true));

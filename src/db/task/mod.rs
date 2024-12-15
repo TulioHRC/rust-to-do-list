@@ -190,4 +190,215 @@ mod tests {
     assert_eq!(tasks[1].is_done, task2.is_done);
     assert_eq!(tasks[1].created_at, task2.created_at);
   }
+ 
+  #[test]
+    fn test_update_task_and_read_task() {
+        let conn = setup().unwrap();
+        let task = insert_task(&conn, "Test task".to_string()).unwrap();
+
+        let updated_task = update_task_status(&conn, task.id, true).unwrap();
+
+        assert_eq!(updated_task.is_done, true);
+        assert_eq!(updated_task.id, task.id);
+        assert_eq!(updated_task.name, task.name);
+    }
+
+    #[test]
+    fn test_update_nonexistent_task() {
+        let conn = setup().unwrap();
+
+        let result = update_task_status(&conn, 999, true);
+        assert!(result.is_err(), "Expected error when updating nonexistent task");
+    }
+
+    #[test]
+    fn test_no_change_on_same_status() {
+        let conn = setup().unwrap();
+        let task = insert_task(&conn, "Test task".to_string()).unwrap();
+
+        // Update to the same status
+        let updated_task = update_task_status(&conn, task.id, false).unwrap();
+
+        assert_eq!(updated_task.is_done, false);
+        assert_eq!(updated_task.id, task.id);
+        assert_eq!(updated_task.name, task.name);
+    }
+
+    #[test]  
+    fn test_invalid_task_id() {
+        let conn = setup().unwrap();
+
+        // Using a task ID of 0 (invalid in many systems)
+        let result = update_task_status(&conn, 0, true);
+        assert!(result.is_err(), "Expected error when using an invalid task ID of 0");
+
+        // Using a large task ID that doesn't exist
+        let result = update_task_status(&conn, u32::MAX, true);
+        assert!(result.is_err(), "Expected error when using a very large invalid task ID");
+    }
+
+    #[test]
+    fn test_read_tasks_with_no_tasks() {
+        let conn = setup().unwrap();
+        let tasks = read_tasks(&conn).unwrap();
+        assert!(tasks.is_empty(), "Expected no tasks but found some");
+    }
+
+    #[test]
+    fn test_read_tasks_no_tasks_exist() {
+        let conn = setup().unwrap();
+
+        let tasks = read_tasks(&conn).unwrap();
+        assert!(tasks.is_empty(), "Expected no tasks, but some tasks were found.");
+    }
+
+    #[test]
+    fn test_read_tasks_single_task() {
+        let conn = setup().unwrap();
+
+        // Insert a single task
+        let task = insert_task(&conn, "Single Task".to_string()).unwrap();
+
+        // Read tasks
+        let tasks = read_tasks(&conn).unwrap();
+
+        // Assertions
+        assert_eq!(tasks.len(), 1, "Expected 1 task, but found {}", tasks.len());
+        let retrieved_task = &tasks[0];
+        assert_eq!(retrieved_task.id, task.id);
+        assert_eq!(retrieved_task.name, task.name);
+        assert_eq!(retrieved_task.is_done, task.is_done);
+    }
+
+    #[test]
+    fn test_read_tasks_multiple_tasks() {
+        let conn = setup().unwrap();
+
+        // Insert multiple tasks
+        let task1 = insert_task(&conn, "Task 1".to_string()).unwrap();
+        let task2 = insert_task(&conn, "Task 2".to_string()).unwrap();
+
+        // Read tasks
+        let tasks = read_tasks(&conn).unwrap();
+
+        // Assertions
+        assert_eq!(tasks.len(), 2, "Expected 2 tasks, but found {}", tasks.len());
+        assert!(tasks.iter().any(|task| task.id == task1.id && task.name == task1.name));
+        assert!(tasks.iter().any(|task| task.id == task2.id && task.name == task2.name));
+    }
+
+    #[test]
+    fn test_read_tasks_excludes_deleted_tasks() {
+        let conn = setup().unwrap();
+
+        // Insert an active task
+        let active_task = insert_task(&conn, "Active Task".to_string()).unwrap();
+
+        // Insert a task and mark it as deleted
+        let deleted_task = insert_task(&conn, "Deleted Task".to_string()).unwrap();
+        conn.execute(
+            "UPDATE tasks SET deleted_at = datetime('now') WHERE id = ?",
+            &[&deleted_task.id],
+        )
+        .unwrap();
+
+        // Read tasks
+        let tasks = read_tasks(&conn).unwrap();
+
+        // Assertions
+        assert_eq!(tasks.len(), 1, "Expected 1 active task, but found {}", tasks.len());
+        let retrieved_task = &tasks[0];
+        assert_eq!(retrieved_task.id, active_task.id);
+        assert_eq!(retrieved_task.name, active_task.name);
+        assert_eq!(retrieved_task.is_done, active_task.is_done);
+    }
+
+    #[test]
+    fn test_read_tasks_handles_various_states() {
+        let conn = setup().unwrap();
+
+        // Insert tasks with different states
+        let incomplete_task = insert_task(&conn, "Incomplete Task".to_string()).unwrap();
+        let completed_task = insert_task(&conn, "Completed Task".to_string()).unwrap();
+        conn.execute(
+            "UPDATE tasks SET is_done = 1 WHERE id = ?",
+            &[&completed_task.id],
+        )
+        .unwrap();
+        let deleted_task = insert_task(&conn, "Deleted Task".to_string()).unwrap();
+        conn.execute(
+            "UPDATE tasks SET deleted_at = datetime('now') WHERE id = ?",
+            &[&deleted_task.id],
+        )
+        .unwrap();
+
+        // Read tasks
+        let tasks = read_tasks(&conn).unwrap();
+
+        // Assertions
+        assert_eq!(tasks.len(), 2, "Expected 2 active tasks, but found {}", tasks.len());
+        assert!(tasks.iter().any(|task| task.id == incomplete_task.id && !task.is_done));
+        assert!(tasks.iter().any(|task| task.id == completed_task.id && task.is_done));
+    }
+
+    #[test]
+    fn test_delete_nonexistent_task() {
+        let conn = setup().unwrap();
+
+        // Attempt to delete a non-existent task
+        let result = delete_task(&conn, 999);
+
+        // Assertions
+        assert!(result.is_err(), "Expected an error when deleting a non-existent task.");
+    }
+
+    #[test]
+    fn test_delete_task_idempotence() {
+        let conn = setup().unwrap();
+
+        // Insert a task
+        let task = insert_task(&conn, "Task to be deleted multiple times".to_string()).unwrap();
+
+        // Delete the task once
+        delete_task(&conn, task.id).unwrap();
+
+        // Attempt to delete the task again
+        let result = delete_task(&conn, task.id);
+
+        // Assertions
+        assert!(
+            result.is_err(),
+            "Expected an error when deleting an already deleted task."
+        );
+
+        // Verify the task is still marked as deleted
+        let mut statement = conn
+            .prepare("SELECT deleted_at FROM tasks WHERE id = ?")
+            .unwrap();
+        let deleted_at: Option<String> = statement.query_row([&task.id], |row| row.get(0)).unwrap();
+        assert!(deleted_at.is_some(), "Expected task to remain marked as deleted.");
+    }
+
+    #[test]
+    fn test_delete_task_does_not_affect_others() {
+        let conn = setup().unwrap();
+
+        // Insert multiple tasks
+        let task1 = insert_task(&conn, "Task 1".to_string()).unwrap();
+        let task2 = insert_task(&conn, "Task 2".to_string()).unwrap();
+
+        // Delete one of the tasks
+        delete_task(&conn, task1.id).unwrap();
+
+        // Verify the other task is not deleted
+        let mut statement = conn
+            .prepare("SELECT deleted_at FROM tasks WHERE id = ?")
+            .unwrap();
+        let deleted_at: Option<String> = statement.query_row([&task2.id], |row| row.get(0)).unwrap();
+        assert!(
+            deleted_at.is_none(),
+            "Expected other tasks to remain unaffected by deletion."
+        );
+    }
+
 }

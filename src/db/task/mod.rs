@@ -1,4 +1,4 @@
-use rusqlite::{Connection, Result};
+use rusqlite::{Connection, Result, Error};
 
 pub struct Task {
   pub id: u32,
@@ -93,6 +93,33 @@ pub fn read_tasks(conn: &Connection) -> Result<Vec<Task>> {
 }
 
 pub fn delete_task(conn: &Connection, id: u32) -> Result<Task> {
+  // Find task
+  let sql = "SELECT id, name, is_done, created_at FROM tasks WHERE id =? AND deleted_at IS NULL";
+  let mut statement = conn.prepare(sql)?;
+
+  let task = statement.query_row(
+    &[&id],
+    |row| {
+      Ok(Task {
+        id: row.get(0)?,
+        name: row.get(1)?,
+        is_done: row.get(2)?,
+        created_at: row.get(3)?,
+      })
+    },
+  );
+
+  match task {
+    Ok(task) => {
+      task.log();
+    },
+    Err(_) => {
+      println!("Task not found");
+      return Err(rusqlite::Error::QueryReturnedNoRows);
+    },
+  }
+
+  // Delete task
   let sql = "UPDATE tasks SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?";
   conn.execute(sql, &[&id]).unwrap();
   let sql = "SELECT id, name, is_done, created_at FROM tasks WHERE id = ? AND deleted_at IS NOT NULL";

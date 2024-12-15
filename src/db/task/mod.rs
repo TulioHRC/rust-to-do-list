@@ -15,7 +15,7 @@ impl Task {
 }
 
 pub fn build_tasks_db_table (conn: &Connection) -> Result<()> {
-  match conn.execute(
+  conn.execute(
     "CREATE TABLE IF NOT EXISTS tasks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -24,13 +24,7 @@ pub fn build_tasks_db_table (conn: &Connection) -> Result<()> {
       is_done BOOLEAN NOT NULL
     )",
     [],
-  ) {
-    Ok(_) => (),
-    Err(err) => {
-      eprintln!("Error creating tasks table: {}", err);
-      return Err(err);
-    }
-  };
+  ).unwrap();
 
   Ok(())
 }
@@ -55,30 +49,23 @@ pub fn insert_task(conn: &Connection, task_name: String) -> Result<Task> {
 
 pub fn update_task_status(conn: &Connection, id: u32, is_done: bool) -> Result<Task> {
   let sql = "UPDATE tasks SET is_done = ? WHERE id = ?";
-  match conn.execute(sql, &[&is_done, &id as &dyn rusqlite::ToSql]) {
-    Ok(_) => {
-      let sql = "SELECT id, name, is_done, created_at FROM tasks WHERE id =?";
-      let mut statement = conn.prepare(sql)?;
+  conn.execute(sql, &[&is_done, &id as &dyn rusqlite::ToSql]).unwrap();
 
-      let updated_task = statement.query_row(
-          &[&id],
-          |row| {
-              Ok(Task {
-                  id: row.get(0)?,
-                  name: row.get(1)?,
-                  is_done: row.get(2)?,
-                  created_at: row.get(3)?,
-              })
-          },
-      )?;
+    let sql = "SELECT id, name, is_done, created_at FROM tasks WHERE id =?";
+    let mut statement = conn.prepare(sql)?;
 
-      Ok(updated_task)
-    }
-    Err(err) => {
-      eprintln!("Error updating task status: {}", err);
-      Err(err)
-    }
-  }
+    let updated_task = statement.query_row(
+      &[&id],
+      |row| {
+        Ok(Task {
+          id: row.get(0)?,
+          name: row.get(1)?,
+          is_done: row.get(2)?,
+          created_at: row.get(3)?,
+        })
+      },
+    )?;
+    Ok(updated_task)
 }
 
 pub fn read_tasks(conn: &Connection) -> Result<Vec<Task>> {
@@ -107,30 +94,23 @@ pub fn read_tasks(conn: &Connection) -> Result<Vec<Task>> {
 
 pub fn delete_task(conn: &Connection, id: u32) -> Result<Task> {
   let sql = "UPDATE tasks SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?";
-  match conn.execute(sql, &[&id]) {
-    Ok(_) => {
-      let sql = "SELECT id, name, is_done, created_at FROM tasks WHERE id = ? AND deleted_at IS NOT NULL";
-      let mut statement = conn.prepare(sql)?;
+  conn.execute(sql, &[&id]).unwrap();
+  let sql = "SELECT id, name, is_done, created_at FROM tasks WHERE id = ? AND deleted_at IS NOT NULL";
+  let mut statement = conn.prepare(sql)?;
 
-      let deleted_task = statement.query_row(
-          &[&id],
-          |row| {
-              Ok(Task {
-                  id: row.get(0)?,
-                  name: row.get(1)?,
-                  is_done: row.get(2)?,
-                  created_at: row.get(3)?,
-              })
-          },
-      )?;
+  let deleted_task = statement.query_row(
+    &[&id],
+    |row| {
+      Ok(Task {
+        id: row.get(0)?,
+        name: row.get(1)?,
+        is_done: row.get(2)?,
+        created_at: row.get(3)?,
+      })
+    },
+  )?;
 
-      return Ok(deleted_task)
-    }
-    Err(err) => {
-      eprintln!("Error deleting task: {}", err);
-      return Err(err)
-    }
-  };
+  return Ok(deleted_task)
 }
 
 #[cfg(test)]

@@ -22,12 +22,12 @@ jobs:
         run: cargo install cargo-tarpaulin  # Instala o cargo-tarpaulin para gerar o relatório de cobertura
 
       - name: Run tests with coverage
-        run: cargo tarpaulin --out coverage/lcov-report # Executa os testes e gera o relatório no formato lcov
+        run: cargo tarpaulin --out lcov # Executa os testes e gera o relatório no formato lcov
 
       - name: Upload coverage to Codecov
         run: |
           curl -s https://codecov.io/bash > codecov && chmod +x codecov 
-          ./codecov -t ${{ secrets.CODECOV_TOKEN }} -f lcov-report 
+          ./codecov -t ${{ secrets.CODECOV_TOKEN }} -f lcov 
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}  # Usa o segredo CODECOV_TOKEN
             

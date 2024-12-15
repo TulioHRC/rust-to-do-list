@@ -15,14 +15,7 @@ pub struct Args {
 pub fn run(){
   let args = Args::parse();
 
-  let conn = connect_db(Some(false));
+  let conn = connect_db(Some(false)).unwrap();
 
-  match conn {
-    Ok(conn) => {
-        command_switch(args, &conn);
-    }
-    Err(err) => {
-      eprintln!("Error connecting to the database: {}", err);
-    }
-  }
+  command_switch(args, &conn);
 }

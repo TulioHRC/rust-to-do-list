@@ -39,14 +39,7 @@ pub fn command_switch(args: Args, conn: &Connection) {
     match args.cmd {
       Commands::Add { name } => {
         println!("Add task {name}");
-        match insert_task(conn, name) {
-          Ok(task) => {
-            println!("Task added successfully: {}", task.name);
-          }
-          Err(err) => {
-            eprintln!("Error adding task: {}", err);
-          }
-        };
+        insert_task(conn, name).unwrap();
       },
       Commands::Update { id, done } => {
         println!("Update task {id} with done status: {done}");
@@ -58,27 +51,14 @@ pub fn command_switch(args: Args, conn: &Connection) {
             return;
           }
         };
-        match update_task_status(conn, id, done) {
-          Ok(task) => {
-            println!("Task updated successfully: {}", task.name);
-            task.log();
-          }
-          Err(err) => {
-            eprintln!("Error updating task: {}", err);
-          }
-        }
+        let updated_task = update_task_status(conn, id, done).unwrap();
+        updated_task.log();
       },
       Commands::Get { } => {
         println!("List tasks");
-        match read_tasks(conn) {
-          Ok(tasks) => {
-            for task in tasks {
-              task.log();
-            }
-          }
-          Err(err) => {
-            eprintln!("Error reading tasks: {}", err);
-          }
+        let tasks = read_tasks(conn).unwrap();
+        for task in tasks {
+          task.log();
         }
       },
       Commands::Delete { id } => {
@@ -236,6 +216,26 @@ mod tests {
     assert!(
       tasks.len() == 1 && tasks[0].is_done == false,
       "The task status was not updated to false with invalid input"
+    );
+  }
+
+  #[test]
+  fn test_delete_nonexistent_task() {
+    let conn = setup().unwrap();
+      
+    let args = Args {
+      cmd: Commands::Delete {
+        id: 1,
+      },
+    };
+    
+    command_switch(args, &conn);
+    
+    let tasks = read_tasks(&conn).unwrap();
+
+    assert!(
+      tasks.len() == 0,
+      "The non-existent task was not deleted from the database"
     );
   }
 

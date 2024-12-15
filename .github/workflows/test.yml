@@ -10,6 +10,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: TulioHRC/rust-to-do-list
+            
       - name: Install pre-requisites
         run: sudo apt-get update && sudo apt-get install libsqlite3-dev
 

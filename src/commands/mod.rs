@@ -88,7 +88,7 @@ mod tests {
   }
 
   #[test]
-  fn test_add_task() {
+  fn test_command_add_task() {
     let conn = setup().unwrap();
       
     let args = Args {
@@ -108,7 +108,7 @@ mod tests {
   }
 
   #[test]
-  fn test_update_task_status_true() {
+  fn test_command_update_task_status_to_true() {
     let conn = setup().unwrap();
       
     let args = Args {
@@ -140,7 +140,7 @@ mod tests {
   }
 
   #[test]
-  fn test_update_task_status_false() {
+  fn test_command_update_task_status_to_false() {
     let conn = setup().unwrap();
       
     let args = Args {
@@ -188,7 +188,7 @@ mod tests {
   }
 
   #[test]
-  fn test_update_task_done_error() {
+  fn test_command_update_task_with_invalid_done_value() {
     let conn = setup().unwrap();
       
     let args = Args {
@@ -220,7 +220,7 @@ mod tests {
   }
 
   #[test]
-  fn test_delete_nonexistent_task() {
+  fn test_command_delete_nonexistent_task() {
     let conn = setup().unwrap();
       
     let args = Args {
@@ -240,7 +240,7 @@ mod tests {
   }
 
   #[test]
-  fn test_delete_task() {
+  fn test_command_delete_existing_task() {
     let conn = setup().unwrap();
       
     let args = Args {
@@ -271,7 +271,7 @@ mod tests {
   }
 
   #[test]
-  fn test_get_tasks() {
+  fn test_command_get_tasks() {
     let conn = setup().unwrap();
       
     let args = Args {

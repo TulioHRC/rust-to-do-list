@@ -188,7 +188,7 @@ mod tests {
   }
 
   #[test]
-  fn test_insert_task_and_read_task() {
+  fn test_insert_and_read_single_task() {
     let conn = setup().unwrap();
 
     let task = insert_task(&conn, "Test task".to_string()).unwrap();
@@ -222,7 +222,6 @@ mod tests {
     assert_eq!(tasks[1].created_at, task2.created_at);
   }
  
-
   #[test]
   fn test_insert_task_with_empty_name() {
     let conn = setup().unwrap();
@@ -257,7 +256,7 @@ mod tests {
   }
   
   #[test]
-  fn test_insert_task_with_special_characters() {
+  fn test_insert_task_with_special_characters_in_name() {
       let conn = setup().unwrap();
   
       // Task name with special characters
@@ -279,7 +278,7 @@ mod tests {
   }
   
   #[test]
-  fn test_insert_task_ensures_is_done_false() {
+  fn test_insert_task_defaults_is_done_to_false() {
       let conn = setup().unwrap();
   
       // Insert a task
@@ -310,7 +309,7 @@ mod tests {
   }
 
   #[test]
-  fn test_update_nonexistent_task() {
+  fn test_update_fails_for_nonexistent_task() {
       let conn = setup().unwrap();
 
       let result = update_task_status(&conn, 999, true);
@@ -318,7 +317,7 @@ mod tests {
   }
 
   #[test]
-  fn test_update_no_change_on_same_status() {
+  fn test_update_task_status_no_change() {
       let conn = setup().unwrap();
       let task = insert_task(&conn, "Test task".to_string()).unwrap();
 
@@ -331,7 +330,7 @@ mod tests {
   }
 
   #[test]
-  fn test_update_status_double_times() {
+  fn test_update_task_status_twice() {
     let conn = setup().unwrap();
     let task = insert_task(&conn, "Test task".to_string()).unwrap();
 
@@ -347,7 +346,7 @@ mod tests {
   }
 
   #[test]  
-  fn test_update_invalid_task_id() {
+  fn test_update_fails_with_invalid_task_id() {
       let conn = setup().unwrap();
 
       // Using a task ID of 0 (invalid in many systems)
@@ -360,14 +359,14 @@ mod tests {
   }
 
   #[test]
-  fn test_read_tasks_with_no_tasks() {
+  fn test_read_tasks_returns_empty_when_no_tasks_exist() {
       let conn = setup().unwrap();
       let tasks = read_tasks(&conn).unwrap();
       assert!(tasks.is_empty(), "Expected no tasks but found some");
   }
 
   #[test]
-  fn test_read_tasks_no_tasks_exist() {
+  fn test_read_tasks_returns_empty_for_empty_db() {
       let conn = setup().unwrap();
 
       let tasks = read_tasks(&conn).unwrap();
@@ -375,7 +374,7 @@ mod tests {
   }
 
   #[test]
-  fn test_read_tasks_single_task() {
+  fn test_read_tasks_returns_single_task() {
       let conn = setup().unwrap();
 
       // Insert a single task
@@ -393,7 +392,7 @@ mod tests {
   }
 
   #[test]
-  fn test_read_tasks_multiple_tasks() {
+  fn test_read_tasks_returns_multiple_tasks() {
       let conn = setup().unwrap();
 
       // Insert multiple tasks
@@ -410,7 +409,7 @@ mod tests {
   }
 
   #[test]
-  fn test_read_tasks_excludes_deleted_tasks() {
+  fn test_read_tasks_excludes_deleted_entries() {
       let conn = setup().unwrap();
 
       // Insert an active task
@@ -436,7 +435,7 @@ mod tests {
   }
 
   #[test]
-  fn test_read_tasks_handles_various_states() {
+  fn test_read_tasks_handles_incomplete_and_complete_states() {
       let conn = setup().unwrap();
 
       // Insert tasks with different states
@@ -464,7 +463,7 @@ mod tests {
   }
 
   #[test]
-  fn test_delete_nonexistent_task() {
+  fn test_delete_fails_for_nonexistent_task() {
       let conn = setup().unwrap();
 
       // Attempt to delete a non-existent task
@@ -475,7 +474,7 @@ mod tests {
   }
 
   #[test]
-  fn test_delete_task_idempotence() {
+  fn test_delete_task_is_idempotent() {
       let conn = setup().unwrap();
 
       // Insert a task
@@ -502,7 +501,7 @@ mod tests {
   }
 
   #[test]
-  fn test_delete_task_does_not_affect_others() {
+  fn test_delete_task_does_not_affect_other_tasks() {
         let conn = setup().unwrap();
 
         // Insert multiple tasks
@@ -524,7 +523,7 @@ mod tests {
     }
 
   #[test]
-  fn test_delete_task() {
+  fn test_delete_task_marks_as_deleted() {
     let conn = setup().unwrap();
 
     // Insert a task

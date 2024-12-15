@@ -1,4 +1,4 @@
-# rust-to-do-lis
+# rust-to-do-list
 
 ## First Section: Members
 

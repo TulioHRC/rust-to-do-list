@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Garantir que o repositório seja clonado completamente
 
       - name: Install pre-requisites
         run: sudo apt-get update && sudo apt-get install libsqlite3-dev

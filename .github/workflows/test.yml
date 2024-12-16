@@ -22,12 +22,12 @@ jobs:
         run: cargo install cargo-tarpaulin  # Instala o cargo-tarpaulin para gerar o relatório de cobertura
 
       - name: Run tests with coverage
-        run: cargo tarpaulin --out Html # Executa os testes e gera o relatório no formato html
+        run: cargo tarpaulin --out lcov # Executa os testes e gera o relatório no formato html
 
       - uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: true # optional (default = false)
-          files: ./tarpaulin-report.html # optional
+          files: ./lcov.info # optional
           flags: unittests # optional
           name: codecov-umbrella # optional
           verbose: true # optional (default = false)

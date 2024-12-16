@@ -41,8 +41,9 @@ Obs.3: cargo build --release, generates a .exe file at ./target/release/rust-to-
 
 # How to run the test?
 
-- cargo run test
+- cargo test
 
 Create coverage report:
 
 - cargo tarpaulin --out Html
+And then open the html generated on your brower.

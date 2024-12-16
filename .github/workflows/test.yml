@@ -18,6 +18,21 @@ jobs:
       - name: Install pre-requisites
         run: sudo apt-get update && sudo apt-get install libsqlite3-dev
 
+      - name: Run the tests
+        run: cargo test -- --test-threads=8
+
+  Codecov:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Garantir que o repositório seja clonado completamente
+
+      - name: Install pre-requisites
+        run: sudo apt-get update && sudo apt-get install libsqlite3-dev
+
       - name: Install cargo-tarpaulin
         run: cargo install cargo-tarpaulin  # Instala o cargo-tarpaulin para gerar o relatório de cobertura
 
@@ -33,6 +48,3 @@ jobs:
           verbose: true # optional (default = false)
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-            
-      - name: Run the tests
-        run: cargo test -- --test-threads=8

@@ -11,6 +11,10 @@ pub enum Commands {
         /// Task's name
         #[arg(short = 'n', long = "name")]
         name: String,
+
+        /// Dry run test
+        #[arg(short = 't', long = "dry-test", default_value_t = false)]
+        dry_test: bool,
     },
 
     /// Mark a task as done or undone
@@ -22,27 +26,45 @@ pub enum Commands {
         /// Set task to done or not done
         #[arg(short = 'd', long = "done")]
         done: String,
+
+        /// Dry run test
+        #[arg(short = 't', long = "dry-test", default_value_t = false)]
+        dry_test: bool,
     },
 
     /// List tasks
-    Get {},
+    Get {
+        /// Dry run test
+        #[arg(short = 't', long = "dry-test", default_value_t = false)]
+        dry_test: bool,
+    },
 
     /// Delete a task by id
     Delete {
         /// Id of the expense
         #[arg()]
         id: u32,
+
+        /// Dry run test
+        #[arg(short = 't', long = "dry-test", default_value_t = false)]
+        dry_test: bool,
     },
 }
 
 pub fn command_switch(args: Args, conn: &Connection) {
     match args.cmd {
-      Commands::Add { name } => {
-        println!("Add task {name}");
+      Commands::Add { name, dry_test } => {
+        println!("Add task {name} {0}", match dry_test{
+          true => "in dry run mode",
+          false => "in normal mode"
+        });
         insert_task(conn, name).unwrap();
       },
-      Commands::Update { id, done } => {
-        println!("Update task {id} with done status: {done}");
+      Commands::Update { id, done, dry_test } => {
+        println!("Update task {id} with done status: {done} {0}", match dry_test{
+          true => "in dry run mode",
+          false => "in normal mode"
+        });
         let done = match done.to_lowercase().as_str() {
           "true" => true,
           "false" => false,
@@ -54,15 +76,21 @@ pub fn command_switch(args: Args, conn: &Connection) {
         let updated_task = update_task_status(conn, id, done).unwrap();
         updated_task.log();
       },
-      Commands::Get { } => {
-        println!("List tasks");
+      Commands::Get { dry_test } => {
+        println!("List tasks {0}", match dry_test{
+          true => "in dry run mode",
+          false => "in normal mode"
+        });
         let tasks = read_tasks(conn).unwrap();
         for task in tasks {
           task.log();
         }
       },
-      Commands::Delete { id } => {
-        println!("Delete task {id} with id");
+      Commands::Delete { id, dry_test } => {
+        println!("Delete task {id} with id {0}", match dry_test{
+          true => "in dry run mode",
+          false => "in normal mode"
+        });
         match delete_task(conn, id) {
           Ok(task) => {
             println!("Task deleted successfully");
@@ -84,7 +112,7 @@ mod tests {
 
   fn setup() -> Result<Connection>{
     // Set up test environment
-    return connect_db(Some(true));
+    return connect_db(Some(true), None);
   }
 
   #[test]
@@ -93,7 +121,8 @@ mod tests {
       
     let args = Args {
       cmd: Commands::Add {
-        name: String::from("Test Task")
+        name: String::from("Test Task"),
+        dry_test: false,
       },
     };
     
@@ -113,7 +142,8 @@ mod tests {
       
     let args = Args {
       cmd: Commands::Add {
-        name: String::from("Test Task")
+        name: String::from("Test Task"),
+        dry_test: false,
       },
     };
     
@@ -126,6 +156,7 @@ mod tests {
       cmd: Commands::Update {
         id: task.id,
         done: String::from("true"),
+        dry_test: false,
       },
     };
     
@@ -145,7 +176,8 @@ mod tests {
       
     let args = Args {
       cmd: Commands::Add {
-        name: String::from("Test Task")
+        name: String::from("Test Task"),
+        dry_test: false,
       },
     };
     
@@ -158,6 +190,7 @@ mod tests {
       cmd: Commands::Update {
         id: task.id,
         done: String::from("true"),
+        dry_test: false,
       },
     };
 
@@ -174,6 +207,7 @@ mod tests {
       cmd: Commands::Update {
         id: task.id,
         done: String::from("false"),
+        dry_test: false,
       },
     };
     
@@ -193,7 +227,8 @@ mod tests {
       
     let args = Args {
       cmd: Commands::Add {
-        name: String::from("Test Task")
+        name: String::from("Test Task"),
+        dry_test: false,
       },
     };
     
@@ -206,6 +241,7 @@ mod tests {
       cmd: Commands::Update {
         id: task.id,
         done: String::from("invalid"),
+        dry_test: false,
       },
     };
     
@@ -226,6 +262,7 @@ mod tests {
     let args = Args {
       cmd: Commands::Delete {
         id: 1,
+        dry_test: false,
       },
     };
     
@@ -245,7 +282,8 @@ mod tests {
       
     let args = Args {
       cmd: Commands::Add {
-        name: String::from("Test Task")
+        name: String::from("Test Task"),
+        dry_test: false,
       },
     };
     
@@ -257,6 +295,7 @@ mod tests {
     let args = Args {
       cmd: Commands::Delete {
         id: task.id,
+        dry_test: false,
       },
     };
     
@@ -277,6 +316,7 @@ mod tests {
     let args = Args {
       cmd: Commands::Add {
         name: String::from("Test Task 1"),
+        dry_test: false,
       },
     };
     
@@ -285,13 +325,16 @@ mod tests {
     let args = Args {
       cmd: Commands::Add {
         name: String::from("Test Task 2"),
+        dry_test: false,
       },
     };
     
     command_switch(args, &conn);
     
     let args = Args {
-      cmd: Commands::Get {},
+      cmd: Commands::Get {
+        dry_test: false,
+      },
     };
     
     command_switch(args, &conn);

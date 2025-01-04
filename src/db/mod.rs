@@ -3,10 +3,13 @@ pub mod task;
 pub use rusqlite::{Connection, Result};
 use task::build_tasks_db_table;
 
-pub fn connect_db(is_test: Option<bool>) -> Result<Connection> {
+pub fn connect_db(is_test: Option<bool>, is_dry_test: Option<bool>) -> Result<Connection> {
   let db_path = match is_test {
     Some(true) => ":memory:",
-    _ => "tasks.db",
+    _ => match is_dry_test {
+      Some(true) => "test_tasks.db",
+      _ => "tasks.db"
+    }
   };
   let conn = Connection::open(db_path)?;
 
@@ -27,7 +30,7 @@ mod tests {
 
   fn setup() -> Result<Connection>{
     // Set up test environment
-    return connect_db(Some(true));
+    return connect_db(Some(true), None);
   }
 
   #[test]

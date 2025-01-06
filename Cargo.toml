@@ -3,9 +3,6 @@ name = "rust-to-do-list"
 version = "0.1.0"
 edition = "2021"
 
-[profile.test]
-test = false # Turn off paralelism on tests
-
 [dependencies]
 clap = { version = "4.5.20", features = ["derive"] }
 rusqlite = "0.32.1"

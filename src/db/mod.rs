@@ -35,16 +35,48 @@ mod tests {
 
   #[test]
   fn test_connect_and_build_db() {
+    let conn = connect_db(Some(false), Some(false));
+  
+    match conn {
+      Ok(_conn) => {
+        println!("Connecting to real database working.");
+        assert!(true);
+      }
+      Err(err) => {
+        eprintln!("Error connecting to the real database: {}", err);
+        assert!(false, "Error connecting to real database");
+      }
+    }
+  }
+
+  #[test]
+  fn test_connect_and_build_db_test_mode() {
     let conn = setup();
 
     match conn {
       Ok(_conn) => {
-        println!("Connecting to database working.");
+        println!("Connecting to test database working.");
         assert!(true);
       }
       Err(err) => {
-        eprintln!("Error connecting to the database: {}", err);
-        assert!(false, "Error connecting to database");
+        eprintln!("Error connecting to the test database: {}", err);
+        assert!(false, "Error connecting to test database");
+      }
+    }
+  }
+
+  #[test]
+  fn test_connect_and_build_db_dry_mode() {
+    let conn = connect_db(Some(false), Some(true));
+  
+    match conn {
+      Ok(_conn) => {
+        println!("Connecting to dry-mode database working.");
+        assert!(true);
+      }
+      Err(err) => {
+        eprintln!("Error connecting to the dry-mode database: {}", err);
+        assert!(false, "Error connecting to dry-mode database");
       }
     }
   }

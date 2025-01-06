@@ -46,6 +46,7 @@ fn test_cli_read() {
         .expect("Error reading tasks");
 
     assert!(output.status.success());
+    assert!(String::from_utf8_lossy(&output.stdout).contains("List tasks"));
     assert!(!String::from_utf8_lossy(&output.stdout).contains("1"));
 
     delete_test_db(); // Tear Down
@@ -331,6 +332,7 @@ fn test_cli_add_read_update() {
         .output()
         .expect("Error updating task");
 
+    assert!(String::from_utf8_lossy(&output.stdout).contains("Update"));
     assert!(String::from_utf8_lossy(&output.stdout).contains("Test"));
     assert!(String::from_utf8_lossy(&output.stdout).contains("is_done = true"));
 

@@ -151,7 +151,7 @@ mod tests {
 
   fn setup() -> Result<Connection>{
     // Set up test environment
-    return connect_db(Some(true));
+    return connect_db(Some(true), None);
   }
 
   #[test]

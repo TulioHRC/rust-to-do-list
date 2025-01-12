@@ -15,7 +15,15 @@ pub struct Args {
 pub fn run(){
   let args = Args::parse();
 
-  let conn = connect_db(Some(false)).unwrap();
+  let is_dry_test = match args.cmd {
+    Commands::Add { name: _, dry_test } => dry_test,
+    Commands::Get { dry_test } => dry_test,
+    Commands::Update { id: _, done: _, dry_test } => dry_test,
+    Commands::Delete { id: _, dry_test } => dry_test,
+  };
+
+  let conn = connect_db(Some(false), 
+    Some(is_dry_test)).unwrap();
 
   command_switch(args, &conn);
 }

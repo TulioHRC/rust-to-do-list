@@ -3,7 +3,7 @@ name: Codecov Report
 on:
   push:
     branches:
-      - main  # O workflow será executado apenas quando houver um commit ou merge na branch `main`
+      - main # O workflow será executado apenas quando houver um commit ou merge na branch `main`
 
 jobs:
   Codecov:
@@ -13,18 +13,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
         with:
-          fetch-depth: 0  # Garantir que o repositório seja clonado completamente
+          fetch-depth: 0 # Garantir que o repositório seja clonado completamente
 
       - name: Install pre-requisites
         run: sudo apt-get update && sudo apt-get install libsqlite3-dev
 
       - name: Install cargo-tarpaulin
-        run: cargo install cargo-tarpaulin  # Instala o cargo-tarpaulin para gerar o relatório de cobertura
+        run: cargo install cargo-tarpaulin # Instala o cargo-tarpaulin para gerar o relatório de cobertura
 
       - name: Run tests with coverage
-        run: 
-          export RUST_TEST_THREADS=1 # Desabilita paralelismo
-          cargo tarpaulin --out lcov # Executa os testes e gera o relatório no formato html
+        run: export RUST_TEST_THREADS=1 && cargo tarpaulin --out lcov # Executa os testes e gera o relatório no formato html
 
       - uses: codecov/codecov-action@v5
         with:
